@@ -16,9 +16,6 @@ on:
         required: false
         type: string
         default: "v2.28.0"
-    secrets:
-      GITHUB_TOKEN:
-        required: true
 
 permissions:
   id-token: write

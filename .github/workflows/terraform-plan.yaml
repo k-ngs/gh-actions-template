@@ -1,0 +1,63 @@
+name: "Reusable Terraform Plan"
+
+on:
+  workflow_call:
+    inputs:
+      working_dir:
+        description: "Full working directory path (required). e.g. environments/dev or infra/terraform/dev"
+        required: true
+        type: string
+      env:
+        description: "Optional target name used for tfcmt (defaults to basename of working_dir)"
+        required: false
+        type: string
+      aqua_version:
+        description: "aqua installer version"
+        required: false
+        type: string
+        default: "v2.28.0"
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Terraform Version
+        shell: bash
+        run: |
+          if [ -f "$WORKING_DIR/.terraform-version" ]; then
+            echo "TF_VERSION=$(cat $WORKING_DIR/.terraform-version)" >> $GITHUB_ENV
+          else
+            echo "TF_VERSION=" >> $GITHUB_ENV
+          fi
+
+      - name: Install common tools
+        uses: ./.github/actions/install-tools
+        with:
+          aqua_version: ${{ inputs.aqua_version }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ inputs.working_dir }}
+        run: terraform init -input=false
+
+      - name: Terraform plan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ${{ inputs.working_dir }}
+        run: tfcmt --var target:${{ inputs.env }} plan -patch -- terraform plan -input=false -no-color

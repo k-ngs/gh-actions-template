@@ -1,0 +1,24 @@
+name: "Install Tools"
+description: "Install common CLI tools used by workflows (aqua, packages like tfcmt)."
+inputs:
+  aqua_version:
+    description: "aqua installer version"
+    required: false
+    default: "v2.28.0"
+runs:
+  using: "composite"
+  steps:
+    - name: Install aqua
+      shell: bash
+      run: |
+        set -e
+        echo "Installing aqua ${INPUTS_AQUA_VERSION:-${{ inputs.aqua_version }}}"
+        # install script from aqua-installer repo
+        curl -sSfL https://raw.githubusercontent.com/aquaproj/aqua-installer/main/install.sh | sh -s -- -v "${{ inputs.aqua_version }}"
+    - name: Install aqua packages
+      shell: bash
+      run: |
+        set -e
+        aqua --version || true
+        aqua install || true
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
